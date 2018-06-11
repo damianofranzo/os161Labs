@@ -209,7 +209,9 @@ void
 kmain(char *arguments)
 {
 	boot();
-
+#if config_HELLO
+	hello();
+#endif
 	menu(arguments);
 
 	/* Should not get here */

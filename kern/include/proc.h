@@ -70,6 +70,9 @@ struct proc {
 	/* VFS */
 	struct vnode *p_cwd;		/* current working directory */
 
+	//added
+	int exit_code;
+
 	/* add more material here as needed */
 };
 
