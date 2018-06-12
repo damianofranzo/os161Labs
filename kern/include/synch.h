@@ -37,6 +37,9 @@
 
 #include <spinlock.h>
 
+#include <current.h>
+
+
 /*
  * Dijkstra-style semaphore.
  *
@@ -76,6 +79,24 @@ struct lock {
         char *lk_name;
         // add what you need here
         // (don't forget to mark things volatile as needed)
+	//OPZIONE 1
+	/*s*************************************************************************/	
+	//#if config_LOCKSEM
+	struct semaphore *lk_sem;
+	struct spinlock lk_lock_threadowner;
+	struct thread *lk_ownerthread;
+	//#endif
+	/*e*************************************************************************/	
+	//OPZIONE 2
+	/*s*************************************************************************/	
+	/*#if config_LOCKCHAN
+	struct wchan *lk_wchan;
+	struct spinlock lk_lock;
+        volatile unsigned lk_count;
+	struct thread *lk_ownerthread;
+	struct spinlock lk_lock_threadowner;
+	#endif*/
+	/*e*************************************************************************/
 };
 
 struct lock *lock_create(const char *name);
@@ -113,8 +134,17 @@ bool lock_do_i_hold(struct lock *);
 
 struct cv {
         char *cv_name;
+
+	struct wchan *cv_wchan;//queue of waiting threads
+	struct spinlock cv_lk;//va insieme a wchan
+	int count;
+//oppure con sem che li contiene
+	//struct semaphore *cv_sem;
+	
+
         // add what you need here
         // (don't forget to mark things volatile as needed)
+	
 };
 
 struct cv *cv_create(const char *name);

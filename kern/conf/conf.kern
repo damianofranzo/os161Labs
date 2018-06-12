@@ -449,3 +449,6 @@ file	  syscall/stdio_syscalls.c
 
 defoption hello
 optfile hello main/hello.c
+
+defoption locksem
+defoption lockchan
