@@ -37,7 +37,7 @@
  */
 
 #include <spinlock.h>
-
+#include <synch.h>
 struct addrspace;
 struct thread;
 struct vnode;
@@ -69,9 +69,11 @@ struct proc {
 
 	/* VFS */
 	struct vnode *p_cwd;		/* current working directory */
-
-	//added
+/*****************************************************/
+	struct semaphore *wait_sem;//permette a chiunque di aspettare la fine del processo
+	int p_pid;
 	int exit_code;
+/*****************************************************/
 
 	/* add more material here as needed */
 };
@@ -99,6 +101,16 @@ struct addrspace *proc_getas(void);
 
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *proc_setas(struct addrspace *);
+
+int proc_wait(struct proc *p);
+
+ // Create a proc structure.
+/*********************************************************************/
+
+#define MAX_PROC 100
+struct proc *proc_table[MAX_PROC];//tabella di puntatori a struct proc
+struct spinlock proc_lk;
+/*********************************************************************/
 
 
 #endif /* _PROC_H_ */

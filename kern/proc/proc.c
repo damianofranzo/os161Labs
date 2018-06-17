@@ -54,9 +54,8 @@
  */
 struct proc *kproc;
 
-/*
- * Create a proc structure.
- */
+int p_pid=0;
+
 static
 struct proc *
 proc_create(const char *name)
@@ -75,8 +74,25 @@ proc_create(const char *name)
 
 	proc->p_numthreads = 0;
 	spinlock_init(&proc->p_lock);
+/**************************************************************************/
+	spinlock_acquire(&proc_lk);//per accesso in mutua esclusione alla tabella
+	if(p_pid>=MAX_PROC){
+		int i=0;
+		while(proc_table[i]!=NULL && i<MAX_PROC) i++;
+		if(i==MAX_PROC) return NULL;
+		proc_table[i] = proc;
+		proc->p_pid = i;
+	}
+	else{
+		proc_table[p_pid] = proc;
+		proc->p_pid = p_pid;
+		p_pid++;
+	}
+	spinlock_release(&proc_lk);
 
-	/* VM fields */
+	proc->wait_sem = sem_create(proc->p_name,0); // blocked
+/***************************************************************************/
+	/* VM fie lds */
 	proc->p_addrspace = NULL;
 
 	/* VFS fields */
@@ -104,7 +120,14 @@ proc_destroy(struct proc *proc)
 
 	KASSERT(proc != NULL);
 	KASSERT(proc != kproc);
+/**************************************************************************/
+	
+	spinlock_acquire(&proc_lk);//per accesso in mutua esclusione alla tabella
+	int p_pid = proc->p_pid;
+	proc_table[p_pid] = NULL;
+	spinlock_release(&proc_lk);
 
+/***************************************************************************/
 	/*
 	 * We don't take p_lock in here because we must have the only
 	 * reference to this structure. (Otherwise it would be
@@ -168,6 +191,8 @@ proc_destroy(struct proc *proc)
 	KASSERT(proc->p_numthreads == 0);
 	spinlock_cleanup(&proc->p_lock);
 
+	sem_destroy(proc->wait_sem);/*aggiunto*/
+
 	kfree(proc->p_name);
 	kfree(proc);
 }
@@ -182,6 +207,10 @@ proc_bootstrap(void)
 	if (kproc == NULL) {
 		panic("proc_create for kproc failed\n");
 	}
+/******************************************************/
+	spinlock_init(&proc_lk);
+/******************************************************/
+	
 }
 
 /*
@@ -318,3 +347,19 @@ proc_setas(struct addrspace *newas)
 	spinlock_release(&proc->p_lock);
 	return oldas;
 }
+
+int proc_wait(struct proc *p){ /*restituisce l'exit code*/
+
+	int code;
+/*	struct proc *p;
+
+	spinlock_acquire(&proc_lk);//per accesso in mutua esclusione alla tabella
+	p = proc_table[pid];
+	spinlock_release(&proc_lk);*/
+
+	P(p->wait_sem);
+	code = p -> exit_code;
+	proc_destroy(p); //qui sto assumendo che il processo è privo di thread perchè la sys_exit dovrebbe aver già sganciato il thread.
+	return code;
+}
+

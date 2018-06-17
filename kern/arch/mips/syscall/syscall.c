@@ -110,29 +110,45 @@ syscall(struct trapframe *tf)
 		break;
 
 	    case SYS_write:
-		err = sys_write((int)tf->tf_a0,
+		retval = sys_write((int)tf->tf_a0,
 				 (const void *)tf->tf_a1,
 				 (size_t)tf->tf_a2);
+		if(retval<=0) err=1;
 		break;
 
 	    case SYS_read:
-		err = sys_read((int)tf->tf_a0,
+		retval = sys_read((int)tf->tf_a0,
 				 (void *)tf->tf_a1,
 				 (size_t)tf->tf_a2);
+		if(retval<=0) err=1;
 		break;
 
 	    case SYS__exit:
 		err = sys_exit((int)tf->tf_a0);
 		break;
+	case SYS_getpid:
+	  err = 0;
+	  break;
+	      
+	    case 68:
+	      //il programma testbin/testfile prevede nel suo 
+	      //workflow la remove, che corrisponde al numero di chiamata 68
+	      //in questo modo evitiamo
+	      break;
+	  
 	
-/*	    case SYS_open:
-		err = sys_open((char *)tf->tf_a0,
+	    case SYS_open:
+		retval = sys_open((char *)tf->tf_a0,
 				 (int)tf->tf_a1);
+		err=retval<3;
 		break;
 
 	    case SYS_close:
 		err = sys_close((int)tf->tf_a0);
-		break;*/
+		break;
+
+	    case SYS_fork:
+	      err = sys_fork(tf,&retval);
 
 	    /* Add stuff here */
 
@@ -182,5 +198,14 @@ syscall(struct trapframe *tf)
 void
 enter_forked_process(struct trapframe *tf)
 {
-	(void)tf;
+  struct trapframe stack_tf;
+  
+  stack_tf = *tf;
+  stack_tf.tf_a3 = 0;
+  stack_tf.tf_v0 = 0;
+  stack_tf.tf_epc += 4;
+  
+
+  mips_usermode(&stack_tf);
+  //(void)tf;
 }
