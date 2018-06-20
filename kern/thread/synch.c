@@ -358,7 +358,8 @@ cv_wait(struct cv *cv, struct lock *lock)
 	
 	cv->count--;
 
-	spinlock_release(&cv->cv_lk);
+	spinlock_release(&cv->cv_lk);//lo rilascio perchè la lock_acquire fa spinlock_acquire per per settare il thread owner,
+					//e non si possono avere 2 spinlock contemporanemante
 
 	lock_acquire(lock);
 
